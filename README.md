@@ -1,50 +1,21 @@
-# drone-gitea-release
+# wp-gitea-release
 
-[![Build Status](http://cloud.drone.io/api/badges/drone-plugins/drone-gitea-release/status.svg)](http://cloud.drone.io/drone-plugins/drone-gitea-release)
-[![Gitter chat](https://badges.gitter.im/drone/drone.png)](https://gitter.im/drone/drone)
-[![Join the discussion at https://discourse.drone.io](https://img.shields.io/badge/discourse-forum-orange.svg)](https://discourse.drone.io)
-[![Drone questions at https://stackoverflow.com](https://img.shields.io/badge/drone-stackoverflow-orange.svg)](https://stackoverflow.com/questions/tagged/drone.io)
-[![](https://images.microbadger.com/badges/image/plugins/gitea-release.svg)](https://microbadger.com/images/plugins/gitea-release "Get your own image badge on microbadger.com")
-[![Go Doc](https://godoc.org/github.com/drone-plugins/drone-gitea-release?status.svg)](http://godoc.org/github.com/drone-plugins/drone-gitea-release)
-[![Go Report](https://goreportcard.com/badge/github.com/drone-plugins/drone-gitea-release)](https://goreportcard.com/report/github.com/drone-plugins/drone-gitea-release)
+Woodpecker CI plugin to add comments to GitHub Issues and Pull Requests
 
-Drone plugin to publish files and artifacts to Gitea release. For the usage information and a listing of the available options please take a look at [the docs](http://plugins.drone.io/drone-plugins/drone-gitea-release/).
+[![Build Status](https://ci.thegeeklab.de/api/badges/thegeeklab/wp-gitea-release/status.svg)](https://ci.thegeeklab.de/repos/thegeeklab/wp-gitea-release)
+[![Docker Hub](https://img.shields.io/badge/dockerhub-latest-blue.svg?logo=docker&logoColor=white)](https://hub.docker.com/r/thegeeklab/wp-gitea-release)
+[![Quay.io](https://img.shields.io/badge/quay-latest-blue.svg?logo=docker&logoColor=white)](https://quay.io/repository/thegeeklab/wp-gitea-release)
+[![Go Report Card](https://goreportcard.com/badge/github.com/thegeeklab/wp-gitea-release)](https://goreportcard.com/report/github.com/thegeeklab/wp-gitea-release)
+[![GitHub contributors](https://img.shields.io/github/contributors/thegeeklab/wp-gitea-release)](https://github.com/thegeeklab/wp-gitea-release/graphs/contributors)
+[![Source: GitHub](https://img.shields.io/badge/source-github-blue.svg?logo=github&logoColor=white)](https://github.com/thegeeklab/wp-gitea-release)
+[![License: Apache-2.0](https://img.shields.io/github/license/thegeeklab/wp-gitea-release)](https://github.com/thegeeklab/wp-gitea-release/blob/main/LICENSE)
 
-## Build
+Woodpecker CI plugin to add comments to GitHub Issues and Pull Requests. You can find the full documentation at [https://woodpecker-plugins.geekdocs.de](https://woodpecker-plugins.geekdocs.de/plugins/wp-gitea-release).
 
-Build the binary with the following command:
+## Contributors
 
-```console
-export GOOS=linux
-export GOARCH=amd64
-export CGO_ENABLED=0
-export GO111MODULE=on
+Special thanks to all [contributors](https://github.com/thegeeklab/wp-gitea-release/graphs/contributors). If you would like to contribute, please see the [instructions](https://github.com/thegeeklab/wp-gitea-release/blob/main/CONTRIBUTING.md).
 
-go build -v -a -tags netgo -o release/linux/amd64/drone-gitea-release
-```
+## License
 
-## Docker
-
-Build the Docker image with the following command:
-
-```console
-docker build \
-  --label org.label-schema.build-date=$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
-  --label org.label-schema.vcs-ref=$(git rev-parse --short HEAD) \
-  --file docker/Dockerfile.linux.amd64 --tag plugins/gitea-release .
-```
-
-## Usage
-
-```console
-docker run --rm \
-  -e PLUGIN_BASE_URL=https://try.gitea.io \
-  -e PLUGIN_API_KEY=your-api-key \
-  -e PLUGIN_FILES=build/* \
-  -e DRONE_REPO_OWNER=gitea \
-  -e DRONE_REPO_NAME=test \
-  -e DRONE_BUILD_EVENT=tag \
-  -v $(pwd):$(pwd) \
-  -w $(pwd) \
-  plugins/gitea-release
-```
+This project is licensed under the Apache-2.0 License - see the [LICENSE](https://github.com/thegeeklab/wp-gitea-release/blob/main/LICENSE) file for details.

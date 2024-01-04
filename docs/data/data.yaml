@@ -1,0 +1,44 @@
+---
+properties:
+  - name: api_key
+    description: |
+      Personal access token to access the GitHub API.
+    type: string
+    required: true
+
+  - name: base_url
+    description: |
+      Api url.
+
+      Only need to be changed for GitHub enterprise in most cases.
+    type: string
+    defaultValue: "https://api.github.com/"
+    required: false
+
+  - name: key
+    description: |
+      Unique identifier to assign to a comment.
+
+      The identifier is used to update an existing comment.
+    type: string
+    required: false
+
+  - name: message
+    description: |
+      Path to file or string that contains the comment text.
+    type: string
+    required: true
+
+  - name: skip_missing
+    description: |
+      Skip comment creation if the given message file does not exist.
+    type: bool
+    defaultValue: false
+    required: false
+
+  - name: update
+    description: |
+      Enable update of an existing comment that matches the key.
+    type: bool
+    defaultValue: false
+    required: false

@@ -1,10 +1,11 @@
-package main
+package plugin
 
 import (
-	"crypto/md5"
-	"crypto/sha1"
+	"crypto/md5"  //nolint:gosec
+	"crypto/sha1" //nolint:gosec
 	"crypto/sha256"
 	"crypto/sha512"
+	"errors"
 	"fmt"
 	"hash/adler32"
 	"hash/crc32"
@@ -16,25 +17,43 @@ import (
 	"golang.org/x/crypto/blake2s"
 )
 
-var (
-	fileExistsValues = map[string]bool{
-		"overwrite": true,
-		"fail":      true,
-		"skip":      true,
+var ErrHashMethodNotSupported = errors.New("hash method not supported")
+
+//nolint:unparam
+func readStringOrFile(input string) (string, bool, error) {
+	//nolint:gomnd
+	if len(input) > 255 {
+		return input, false, nil
 	}
-)
+
+	// Check if input is a file path
+	if _, err := os.Stat(input); err != nil && os.IsNotExist(err) {
+		// No file found => use input as result
+		return input, false, nil
+	} else if err != nil {
+		return "", false, err
+	}
+
+	result, err := os.ReadFile(input)
+	if err != nil {
+		return "", true, err
+	}
+
+	return string(result), true, nil
+}
 
 func checksum(r io.Reader, method string) (string, error) {
 	b, err := io.ReadAll(r)
-
 	if err != nil {
 		return "", err
 	}
 
 	switch method {
 	case "md5":
+		//nolint:gosec
 		return fmt.Sprintf("%x", md5.Sum(b)), nil
 	case "sha1":
+		//nolint:gosec
 		return fmt.Sprintf("%x", sha1.Sum(b)), nil
 	case "sha256":
 		return fmt.Sprintf("%x", sha256.Sum256(b)), nil
@@ -50,7 +69,7 @@ func checksum(r io.Reader, method string) (string, error) {
 		return fmt.Sprintf("%x", blake2s.Sum256(b)), nil
 	}
 
-	return "", fmt.Errorf("Hashing method %s is not supported", method)
+	return "", fmt.Errorf("%w: %q", ErrHashMethodNotSupported, method)
 }
 
 func writeChecksums(files, methods []string) ([]string, error) {
@@ -59,15 +78,13 @@ func writeChecksums(files, methods []string) ([]string, error) {
 	for _, method := range methods {
 		for _, file := range files {
 			handle, err := os.Open(file)
-
 			if err != nil {
-				return nil, fmt.Errorf("Failed to read %s artifact: %s", file, err)
+				return nil, fmt.Errorf("failed to read %q artifact: %w", file, err)
 			}
 
 			hash, err := checksum(handle, method)
-
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("could not checksum %q file: %w", file, err)
 			}
 
 			checksums[method] = append(checksums[method], hash, file)
@@ -76,8 +93,8 @@ func writeChecksums(files, methods []string) ([]string, error) {
 
 	for method, results := range checksums {
 		filename := method + "sum.txt"
-		f, err := os.Create(filename)
 
+		f, err := os.Create(filename)
 		if err != nil {
 			return nil, err
 		}
