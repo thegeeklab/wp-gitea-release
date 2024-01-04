@@ -82,20 +82,14 @@ func (p *Plugin) Execute() error {
 
 	rc := releaseClient{
 		Client:     client,
-		Owner:      p.Settings.Repo.Owner,
-		Repo:       p.Settings.Repo.Name,
+		Owner:      p.Metadata.Repository.Owner,
+		Repo:       p.Metadata.Repository.Name,
 		Tag:        strings.TrimPrefix(p.Settings.CommitRef, "refs/tags/"),
 		Draft:      p.Settings.Draft,
 		Prerelease: p.Settings.PreRelease,
 		FileExists: p.Settings.FileExists,
 		Title:      p.Settings.Title,
 		Note:       p.Settings.Note,
-	}
-
-	// if the title was not provided via .drone.yml we use the tag instead
-	// fixes https://github.com/drone-plugins/drone-gitea-release/issues/26
-	if rc.Title == "" {
-		rc.Title = rc.Tag
 	}
 
 	release, err := rc.buildRelease()

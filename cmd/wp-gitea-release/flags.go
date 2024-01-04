@@ -12,7 +12,7 @@ func settingsFlags(settings *plugin.Settings, category string) []cli.Flag {
 	return []cli.Flag{
 		&cli.StringFlag{
 			Name:        "api-key",
-			Usage:       "api key to access gitea api",
+			Usage:       "api key to access Gitea API",
 			EnvVars:     []string{"PLUGIN_API_KEY", "GITEA_RELEASE_API_KEY", "GITEA_TOKEN"},
 			Destination: &settings.APIKey,
 			Category:    category,
@@ -55,37 +55,24 @@ func settingsFlags(settings *plugin.Settings, category string) []cli.Flag {
 		},
 		&cli.StringFlag{
 			Name:     "base-url",
-			Usage:    "url of the gitea instance",
+			Usage:    "URL of the Gitea instance",
 			EnvVars:  []string{"PLUGIN_BASE_URL", "GITEA_RELEASE_BASE_URL"},
 			Category: category,
 			Required: true,
 		},
 		&cli.StringFlag{
 			Name:        "note",
-			Usage:       "file or string with notes for the release (example: changelog)",
+			Usage:       "file or string with notes for the release",
 			EnvVars:     []string{"PLUGIN_NOTE", "GITEA_RELEASE_NOTE"},
 			Destination: &settings.Note,
 			Category:    category,
 		},
 		&cli.StringFlag{
 			Name:        "title",
-			Usage:       "file or string for the title shown in the gitea release",
-			EnvVars:     []string{"PLUGIN_TITLE", "GITEA_RELEASE_TITLE"},
+			Usage:       "file or string for the title shown in the Gitea release",
+			EnvVars:     []string{"PLUGIN_TITLE", "GITEA_RELEASE_TITLE", "CI_COMMIT_TAG"},
 			Destination: &settings.Title,
-			Category:    category,
-		},
-		&cli.StringFlag{
-			Name:        "repo.owner",
-			Usage:       "repository owner",
-			EnvVars:     []string{"CI_REPO_OWNER"},
-			Destination: &settings.Repo.Owner,
-			Category:    category,
-		},
-		&cli.StringFlag{
-			Name:        "repo.name",
-			Usage:       "repository name",
-			EnvVars:     []string{"CI_REPO_NAME"},
-			Destination: &settings.Repo.Name,
+			DefaultText: "$CI_COMMIT_TAG",
 			Category:    category,
 		},
 		&cli.StringFlag{
@@ -94,6 +81,7 @@ func settingsFlags(settings *plugin.Settings, category string) []cli.Flag {
 			Usage:       "build event",
 			EnvVars:     []string{"CI_PIPELINE_EVENT"},
 			Destination: &settings.Event,
+			DefaultText: "$CI_PIPELINE_EVENT",
 			Category:    category,
 		},
 		&cli.StringFlag{

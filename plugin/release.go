@@ -15,7 +15,7 @@ var (
 	ErrFileExists      = errors.New("asset file already exist")
 )
 
-// Release holds ties the drone env data and gitea client together.
+// Release holds ties the Woodpecker env data and gitea client together.
 type releaseClient struct {
 	*gitea.Client
 	Owner      string

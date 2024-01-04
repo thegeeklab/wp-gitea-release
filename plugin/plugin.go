@@ -27,13 +27,6 @@ type Settings struct {
 
 	baseURL *url.URL
 	files   []string
-
-	Repo Repo
-}
-
-type Repo struct {
-	Owner string
-	Name  string
 }
 
 func New(options wp.Options, settings *Settings) *Plugin {

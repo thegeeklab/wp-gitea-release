@@ -53,7 +53,7 @@ steps:
         target: DOCKER_USER
     environment:
       PUSHRM_FILE: README.md
-      PUSHRM_SHORT: Woodpecker CI plugin to add comments to GitHub Issues and Pull Requests
+      PUSHRM_SHORT: Woodpecker CI plugin to publish files and artifacts to Gitea releases
       PUSHRM_TARGET: ${CI_REPO}
     when:
       - event: [push, manual]

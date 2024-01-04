@@ -10,7 +10,7 @@ title: wp-gitea-release
 [![Source: GitHub](https://img.shields.io/badge/source-github-blue.svg?logo=github&logoColor=white)](https://github.com/thegeeklab/wp-gitea-release)
 [![License: Apache-2.0](https://img.shields.io/github/license/thegeeklab/wp-gitea-release)](https://github.com/thegeeklab/wp-gitea-release/blob/main/LICENSE)
 
-Woodpecker CI plugin to add comments to GitHub Issues and Pull Requests.
+Woodpecker CI plugin to publish files and artifacts to Gitea releases.
 
 <!-- prettier-ignore-start -->
 <!-- spellchecker-disable -->
@@ -20,12 +20,8 @@ Woodpecker CI plugin to add comments to GitHub Issues and Pull Requests.
 
 ## Usage
 
-{{< hint type=important >}}
-Due to the nature of this plugin, a secret for the GitHub token may need to be exposed for pull request events in Woodpecker. Please be careful with this option, as a malicious actor may submit a pull request that exposes your secrets. Do not disclose secrets to pull requests in public environments without further protection.
-{{< /hint >}}
-
 {{< hint type=note >}}
-Only pull request events are supported by this plugin. Running the plugin on other events will result in an error.
+Only tag events are supported by this plugin. Running the plugin on other events will result in an error.
 {{< /hint >}}
 
 ```YAML
@@ -33,12 +29,12 @@ kind: pipeline
 name: default
 
 steps:
-  - name: pr-comment
+  - name: publish
     image: quay.io/thegeeklab/wp-gitea-release
     settings:
-      api_key: ghp_3LbMg9Kncpdkhjp3bh3dMnKNXLjVMTsXk4sM
-      message: "CI run completed successfully"
-      update: true
+      api_key: 3LbMg9Kncpdkhjp3bh3dMnKNXLjVMTsXk4sM
+      base_url: https://gitea.rknet.org
+      files: build/*
 ```
 
 ### Parameters
@@ -67,12 +63,12 @@ docker build --file Containerfile.multiarch --tag thegeeklab/wp-gitea-release .
 
 ```Shell
 docker run --rm \
-  -e CI_PIPELINE_EVENT=pull_request \
-  -e CI_REPO_OWNER=octocat \
-  -e CI_REPO_NAME=foo \
-  -e CI_COMMIT_PULL_REQUEST=1
-  -e PLUGIN_API_KEY=abc123 \
-  -e PLUGIN_MESSAGE="Demo comment" \
+  -e PLUGIN_BASE_URL=https://try.gitea.io \
+  -e PLUGIN_API_KEY=your-api-key \
+  -e PLUGIN_FILES=build/* \
+  -e CI_REPO_OWNER=gitea \
+  -e CI_REPO_NAME=test \
+  -e CI_PIPELINE_EVENT=tag \
   -v $(pwd):/build:z \
   -w /build \
   thegeeklab/wp-gitea-release

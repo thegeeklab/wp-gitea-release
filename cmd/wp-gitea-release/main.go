@@ -18,7 +18,7 @@ func main() {
 	settings := &plugin.Settings{}
 	options := wp.Options{
 		Name:            "wp-gitea-release",
-		Description:     "Add comments to GitHub Issues and Pull Requests",
+		Description:     "Publish files and artifacts to Gitea releases",
 		Version:         BuildVersion,
 		VersionMetadata: fmt.Sprintf("date=%s", BuildDate),
 		Flags:           settingsFlags(settings, wp.FlagsPluginCategory),

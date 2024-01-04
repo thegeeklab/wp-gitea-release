@@ -2,43 +2,58 @@
 properties:
   - name: api_key
     description: |
-      Personal access token to access the GitHub API.
+      Api key to access Gitea API.
     type: string
     required: true
 
   - name: base_url
     description: |
-      Api url.
-
-      Only need to be changed for GitHub enterprise in most cases.
-    type: string
-    defaultValue: "https://api.github.com/"
-    required: false
-
-  - name: key
-    description: |
-      Unique identifier to assign to a comment.
-
-      The identifier is used to update an existing comment.
-    type: string
-    required: false
-
-  - name: message
-    description: |
-      Path to file or string that contains the comment text.
+      URL of the Gitea instance.
     type: string
     required: true
 
-  - name: skip_missing
+  - name: checksum
     description: |
-      Skip comment creation if the given message file does not exist.
+      Generate specific checksums.
+    type: list
+    required: false
+
+  - name: draft
+    description: |
+      Create a draft release.
     type: bool
     defaultValue: false
     required: false
 
-  - name: update
+  - name: file_exist
     description: |
-      Enable update of an existing comment that matches the key.
+      What to do if file already exist.
+    type: string
+    defaultValue: "overwrite"
+    required: false
+
+  - name: files
+    description: |
+      List of files to upload.
+    type: list
+    required: false
+
+  - name: note
+    description: |
+      File or string with notes for the release.
+    type: string
+    required: false
+
+  - name: prerelease
+    description: |
+      Set the release as prerelease.
     type: bool
     defaultValue: false
+    required: false
+
+  - name: title
+    description: |
+      File or string for the title shown in the Gitea release.
+    type: string
+    defaultValue: $CI_COMMIT_TAG
     required: false

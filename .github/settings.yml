@@ -1,6 +1,6 @@
 repository:
   name: wp-gitea-release
-  description: Woodpecker CI plugin to add comments to GitHub Issues and Pull Requests
+  description: Woodpecker CI plugin to publish files and artifacts to Gitea releases
   homepage: https://woodpecker-plugins.geekdocs.de/plugins/wp-gitea-release
   topics: woodpecker-ci, woodpecker, woodpecker-plugin
 
