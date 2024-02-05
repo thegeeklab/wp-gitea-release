@@ -4,7 +4,7 @@ go 1.21
 
 require (
 	code.gitea.io/sdk/gitea v0.17.1
-	github.com/rs/zerolog v1.31.0
+	github.com/rs/zerolog v1.32.0
 	github.com/thegeeklab/wp-plugin-go v1.5.0
 	github.com/urfave/cli/v2 v2.27.1
 	golang.org/x/crypto v0.18.0
