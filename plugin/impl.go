@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/thegeeklab/wp-plugin-go/file"
 )
 
 var (
@@ -53,13 +54,13 @@ func (p *Plugin) Validate() error {
 	}
 
 	if p.Settings.Note != "" {
-		if p.Settings.Note, _, err = readStringOrFile(p.Settings.Note); err != nil {
+		if p.Settings.Note, _, err = file.ReadStringOrFile(p.Settings.Note); err != nil {
 			return fmt.Errorf("error while reading %s: %w", p.Settings.Note, err)
 		}
 	}
 
 	if p.Settings.Title != "" {
-		if p.Settings.Title, _, err = readStringOrFile(p.Settings.Title); err != nil {
+		if p.Settings.Title, _, err = file.ReadStringOrFile(p.Settings.Title); err != nil {
 			return fmt.Errorf("error while reading %s: %w", p.Settings.Title, err)
 		}
 	}
