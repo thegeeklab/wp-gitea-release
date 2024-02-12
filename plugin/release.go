@@ -40,7 +40,6 @@ func (rc *releaseClient) buildRelease() (*gitea.Release, error) {
 
 	// if no release was found by that tag, create a new one
 	release, err = rc.newRelease()
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve or create a release: %w", err)
 	}
