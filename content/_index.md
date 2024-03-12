@@ -25,14 +25,11 @@ Only tag events are supported by this plugin. Running the plugin on other events
 {{< /hint >}}
 
 ```YAML
-kind: pipeline
-name: default
-
 steps:
   - name: publish
     image: quay.io/thegeeklab/wp-gitea-release
     settings:
-      api_key: 3LbMg9Kncpdkhjp3bh3dMnKNXLjVMTsXk4sM
+      api_key: randomstring
       base_url: https://gitea.rknet.org
       files: build/*
 ```
@@ -64,7 +61,7 @@ docker build --file Containerfile.multiarch --tag thegeeklab/wp-gitea-release .
 ```Shell
 docker run --rm \
   -e PLUGIN_BASE_URL=https://try.gitea.io \
-  -e PLUGIN_API_KEY=your-api-key \
+  -e PLUGIN_API_KEY=randomstring \
   -e PLUGIN_FILES=build/* \
   -e CI_REPO_OWNER=gitea \
   -e CI_REPO_NAME=test \
