@@ -5,7 +5,7 @@ go 1.22
 require (
 	code.gitea.io/sdk/gitea v0.18.0
 	github.com/rs/zerolog v1.32.0
-	github.com/thegeeklab/wp-plugin-go v1.7.1
+	github.com/thegeeklab/wp-plugin-go v1.8.0
 	github.com/urfave/cli/v2 v2.27.2
 	golang.org/x/crypto v0.22.0
 )
