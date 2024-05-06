@@ -38,6 +38,22 @@ properties:
     type: list
     required: false
 
+  - name: insecure_skip_verify
+    description: |
+      Skip SSL verification.
+
+      Activating this option is insecure and should be avoided in most cases.
+    type: bool
+    defaultValue: false
+    required: false
+
+  - name: log_level
+    description: |
+      Plugin log level.
+    type: string
+    defaultValue: "info"
+    required: false
+
   - name: note
     description: |
       File or string with notes for the release.

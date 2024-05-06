@@ -15,8 +15,9 @@ var (
 	ErrFileExists      = errors.New("asset file already exist")
 )
 
-// Release holds ties the Woodpecker env data and gitea client together.
-type releaseClient struct {
+// release is a struct that holds the necessary information to interact with the Gitea API
+// to manage releases for a given repository.
+type Release struct {
 	*gitea.Client
 	Owner      string
 	Repo       string
@@ -28,7 +29,8 @@ type releaseClient struct {
 	Note       string
 }
 
-func (rc *releaseClient) buildRelease() (*gitea.Release, error) {
+// buildRelease attempts to retrieve an existing release by the specified tag, and if not found, creates a new release.
+func (rc *Release) buildRelease() (*gitea.Release, error) {
 	// first attempt to get a release by that tag
 	release, err := rc.getRelease()
 
@@ -47,7 +49,8 @@ func (rc *releaseClient) buildRelease() (*gitea.Release, error) {
 	return release, nil
 }
 
-func (rc *releaseClient) getRelease() (*gitea.Release, error) {
+// getRelease retrieves the release with the specified tag name from the Gitea repository.
+func (rc *Release) getRelease() (*gitea.Release, error) {
 	releases, _, err := rc.Client.ListReleases(rc.Owner, rc.Repo, gitea.ListReleasesOptions{})
 	if err != nil {
 		return nil, err
@@ -64,7 +67,7 @@ func (rc *releaseClient) getRelease() (*gitea.Release, error) {
 	return nil, fmt.Errorf("%w: %s", ErrReleaseNotFound, rc.Tag)
 }
 
-func (rc *releaseClient) newRelease() (*gitea.Release, error) {
+func (rc *Release) newRelease() (*gitea.Release, error) {
 	r := gitea.CreateReleaseOption{
 		TagName:      rc.Tag,
 		IsDraft:      rc.Draft,
@@ -83,7 +86,16 @@ func (rc *releaseClient) newRelease() (*gitea.Release, error) {
 	return release, nil
 }
 
-func (rc *releaseClient) uploadFiles(releaseID int64, files []string) error {
+// uploadFiles uploads the specified files as attachments to the release with the given ID.
+// It first checks for existing attachments with the same names,
+// and handles them according to the FileExists configuration:
+//
+// - "overwrite": overwrites the existing attachment
+// - "fail": returns an error if the file already exists
+// - "skip": skips uploading the file and logs a warning
+//
+// If the file does not exist, it is uploaded as a new attachment.
+func (rc *Release) uploadFiles(releaseID int64, files []string) error {
 	attachments, _, err := rc.Client.ListReleaseAttachments(
 		rc.Owner,
 		rc.Repo,

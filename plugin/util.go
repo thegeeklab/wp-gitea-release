@@ -11,7 +11,6 @@ import (
 	"hash/crc32"
 	"io"
 	"os"
-	"strconv"
 
 	"golang.org/x/crypto/blake2b"
 	"golang.org/x/crypto/blake2s"
@@ -19,7 +18,9 @@ import (
 
 var ErrHashMethodNotSupported = errors.New("hash method not supported")
 
-func checksum(r io.Reader, method string) (string, error) {
+// Checksum calculates the checksum of the given io.Reader using the specified hash method.
+// Supported hash methods are: "md5", "sha1", "sha256", "sha512", "adler32", "crc32", "blake2b", "blake2s".
+func Checksum(r io.Reader, method string) (string, error) {
 	b, err := io.ReadAll(r)
 	if err != nil {
 		return "", err
@@ -37,9 +38,9 @@ func checksum(r io.Reader, method string) (string, error) {
 	case "sha512":
 		return fmt.Sprintf("%x", sha512.Sum512(b)), nil
 	case "adler32":
-		return strconv.FormatUint(uint64(adler32.Checksum(b)), 10), nil
+		return fmt.Sprintf("%08x", adler32.Checksum(b)), nil
 	case "crc32":
-		return strconv.FormatUint(uint64(crc32.ChecksumIEEE(b)), 10), nil
+		return fmt.Sprintf("%08x", crc32.ChecksumIEEE(b)), nil
 	case "blake2b":
 		return fmt.Sprintf("%x", blake2b.Sum256(b)), nil
 	case "blake2s":
@@ -49,7 +50,9 @@ func checksum(r io.Reader, method string) (string, error) {
 	return "", fmt.Errorf("%w: %q", ErrHashMethodNotSupported, method)
 }
 
-func writeChecksums(files, methods []string) ([]string, error) {
+// WriteChecksums calculates the checksums for the given files using the specified hash methods,
+// and writes the checksums to files named after the hash methods (e.g. "md5sum.txt", "sha256sum.txt").
+func WriteChecksums(files, methods []string) ([]string, error) {
 	checksums := make(map[string][]string)
 
 	for _, method := range methods {
@@ -59,7 +62,7 @@ func writeChecksums(files, methods []string) ([]string, error) {
 				return nil, fmt.Errorf("failed to read %q artifact: %w", file, err)
 			}
 
-			hash, err := checksum(handle, method)
+			hash, err := Checksum(handle, method)
 			if err != nil {
 				return nil, fmt.Errorf("could not checksum %q file: %w", file, err)
 			}
