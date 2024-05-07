@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/sdk/gitea"
-	"github.com/thegeeklab/wp-plugin-go/file"
+	"github.com/thegeeklab/wp-plugin-go/v2/file"
 )
 
 var (
