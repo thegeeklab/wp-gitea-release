@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/sdk/gitea"
-	"github.com/thegeeklab/wp-plugin-go/file"
+	"github.com/thegeeklab/wp-plugin-go/v2/file"
 )
 
 var (
@@ -81,7 +81,7 @@ func (p *Plugin) Execute() error {
 		return err
 	}
 
-	rc := releaseClient{
+	r := &Release{
 		Client:     client,
 		Owner:      p.Metadata.Repository.Owner,
 		Repo:       p.Metadata.Repository.Name,
@@ -93,12 +93,12 @@ func (p *Plugin) Execute() error {
 		Note:       p.Settings.Note,
 	}
 
-	release, err := rc.buildRelease()
+	release, err := r.buildRelease()
 	if err != nil {
 		return fmt.Errorf("failed to create the release: %w", err)
 	}
 
-	if err := rc.uploadFiles(release.ID, p.Settings.files); err != nil {
+	if err := r.uploadFiles(release.ID, p.Settings.files); err != nil {
 		return fmt.Errorf("failed to upload the files: %w", err)
 	}
 
@@ -136,7 +136,7 @@ func (p *Plugin) FlagsFromContext() error {
 	if len(p.Settings.Checksum.Value()) > 0 {
 		var err error
 
-		files, err = writeChecksums(files, p.Settings.Checksum.Value())
+		files, err = WriteChecksums(files, p.Settings.Checksum.Value(), "")
 		if err != nil {
 			return fmt.Errorf("failed to write checksums: %w", err)
 		}
