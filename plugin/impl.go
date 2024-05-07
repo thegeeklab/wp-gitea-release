@@ -136,7 +136,7 @@ func (p *Plugin) FlagsFromContext() error {
 	if len(p.Settings.Checksum.Value()) > 0 {
 		var err error
 
-		files, err = WriteChecksums(files, p.Settings.Checksum.Value())
+		files, err = WriteChecksums(files, p.Settings.Checksum.Value(), "")
 		if err != nil {
 			return fmt.Errorf("failed to write checksums: %w", err)
 		}

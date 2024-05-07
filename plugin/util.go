@@ -11,6 +11,7 @@ import (
 	"hash/crc32"
 	"io"
 	"os"
+	"path/filepath"
 
 	"golang.org/x/crypto/blake2b"
 	"golang.org/x/crypto/blake2s"
@@ -52,44 +53,42 @@ func Checksum(r io.Reader, method string) (string, error) {
 
 // WriteChecksums calculates the checksums for the given files using the specified hash methods,
 // and writes the checksums to files named after the hash methods (e.g. "md5sum.txt", "sha256sum.txt").
-func WriteChecksums(files, methods []string) ([]string, error) {
-	checksums := make(map[string][]string)
+func WriteChecksums(files, methods []string, outDir string) ([]string, error) {
+	if len(files) == 0 {
+		return files, nil
+	}
+
+	checksumFiles := make([]string, 0)
 
 	for _, method := range methods {
+		checksumFile := filepath.Join(outDir, method+"sum.txt")
+
+		f, err := os.Create(checksumFile)
+		if err != nil {
+			return nil, err
+		}
+		defer f.Close()
+
 		for _, file := range files {
 			handle, err := os.Open(file)
 			if err != nil {
 				return nil, fmt.Errorf("failed to read %q artifact: %w", file, err)
 			}
+			defer handle.Close()
 
 			hash, err := Checksum(handle, method)
 			if err != nil {
 				return nil, fmt.Errorf("could not checksum %q file: %w", file, err)
 			}
 
-			checksums[method] = append(checksums[method], hash, file)
-		}
-	}
-
-	for method, results := range checksums {
-		filename := method + "sum.txt"
-
-		f, err := os.Create(filename)
-		if err != nil {
-			return nil, err
-		}
-
-		for i := 0; i < len(results); i += 2 {
-			hash := results[i]
-			file := results[i+1]
-
-			if _, err := f.WriteString(fmt.Sprintf("%s  %s\n", hash, file)); err != nil {
+			_, err = f.WriteString(fmt.Sprintf("%s  %s\n", hash, file))
+			if err != nil {
 				return nil, err
 			}
 		}
 
-		files = append(files, filename)
+		checksumFiles = append(checksumFiles, checksumFile)
 	}
 
-	return files, nil
+	return append(files, checksumFiles...), nil
 }
