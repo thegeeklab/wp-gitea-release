@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"code.gitea.io/sdk/gitea"
-	"github.com/rs/zerolog/log"
 	"github.com/thegeeklab/wp-plugin-go/v2/file"
 )
 
@@ -79,7 +78,7 @@ func (p *Plugin) Execute() error {
 		return err
 	}
 
-	client := NewGiteaClient(gitea, log.Logger)
+	client := NewGiteaClient(gitea)
 	client.Release.Opt = GiteaReleaseOpt{
 		Owner:      p.Metadata.Repository.Owner,
 		Repo:       p.Metadata.Repository.Name,

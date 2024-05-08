@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/rs/zerolog/log"
+
 	"code.gitea.io/sdk/gitea"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
@@ -117,8 +119,8 @@ func TestGiteaReleaseFind(t *testing.T) {
 		}))
 		defer ts.Close()
 
-		logBuffer := new(bytes.Buffer)
-		client := createTestClient(t, ts.URL, logBuffer)
+		g, _ := gitea.NewClient(ts.URL)
+		client := NewGiteaClient(g)
 
 		t.Run(tt.name, func(t *testing.T) {
 			client.Release.Opt = tt.opt
@@ -209,8 +211,8 @@ func TestGiteaReleaseCreate(t *testing.T) {
 		}))
 		defer ts.Close()
 
-		logBuffer := new(bytes.Buffer)
-		client := createTestClient(t, ts.URL, logBuffer)
+		g, _ := gitea.NewClient(ts.URL)
+		client := NewGiteaClient(g)
 
 		t.Run(tt.name, func(t *testing.T) {
 			client.Release.Opt = tt.opt
@@ -234,6 +236,10 @@ func TestGiteaReleaseCreate(t *testing.T) {
 }
 
 func TestGiteaReleaseAddAttachments(t *testing.T) {
+	logBuffer := &bytes.Buffer{}
+	logger := zerolog.New(logBuffer)
+	log.Logger = logger
+
 	tests := []struct {
 		name       string
 		opt        GiteaReleaseOpt
@@ -252,7 +258,7 @@ func TestGiteaReleaseAddAttachments(t *testing.T) {
 				FileExists: "overwrite",
 			},
 			files:    []string{createTempFile(t, "file1.txt"), createTempFile(t, "file2.txt")},
-			wantLogs: []string{"successfully uploaded"},
+			wantLogs: []string{"uploaded artifact: file1.txt", "uploaded artifact: file2.txt"},
 		},
 		{
 			name: "fail on existing attachments",
@@ -263,9 +269,34 @@ func TestGiteaReleaseAddAttachments(t *testing.T) {
 				Title:      "Release v2.0.0",
 				FileExists: "fail",
 			},
+			files:   []string{createTempFile(t, "file1.txt"), createTempFile(t, "file2.txt")},
+			wantErr: ErrFileExists,
+		},
+		{
+			name: "overwrite on existing attachments",
+			opt: GiteaReleaseOpt{
+				Owner:      "test-owner",
+				Repo:       "test-repo",
+				Tag:        "v2.0.0",
+				Title:      "Release v2.0.0",
+				FileExists: "overwrite",
+			},
 			files:    []string{createTempFile(t, "file1.txt"), createTempFile(t, "file2.txt")},
-			wantErr:  ErrFileExists,
-			wantLogs: []string{"successfully uploadedasasas"},
+			wantErr:  nil,
+			wantLogs: []string{"deleted artifact: file1.txt", "uploaded artifact: file1.txt"},
+		},
+		{
+			name: "skip on existing attachments",
+			opt: GiteaReleaseOpt{
+				Owner:      "test-owner",
+				Repo:       "test-repo",
+				Tag:        "v2.0.0",
+				Title:      "Release v2.0.0",
+				FileExists: "skip",
+			},
+			files:    []string{createTempFile(t, "file1.txt"), createTempFile(t, "file2.txt")},
+			wantErr:  nil,
+			wantLogs: []string{"skip existing artifact: file1"},
 		},
 		{
 			name: "fail on invalid file",
@@ -287,8 +318,9 @@ func TestGiteaReleaseAddAttachments(t *testing.T) {
 		}))
 		defer ts.Close()
 
-		logBuffer := new(bytes.Buffer)
-		client := createTestClient(t, ts.URL, logBuffer)
+		logBuffer.Reset()
+		g, _ := gitea.NewClient(ts.URL)
+		client := NewGiteaClient(g)
 
 		t.Run(tt.name, func(t *testing.T) {
 			client.Release.Opt = tt.opt
@@ -310,7 +342,6 @@ func TestGiteaReleaseAddAttachments(t *testing.T) {
 
 			assert.NoError(t, err)
 		})
-
 	}
 }
 
@@ -321,13 +352,4 @@ func createTempFile(t *testing.T, name string) string {
 	_ = os.WriteFile(name, []byte("hello"), 0o600)
 
 	return name
-}
-
-func createTestClient(t *testing.T, url string, buffer *bytes.Buffer) *GiteaClient {
-	t.Helper()
-
-	logger := zerolog.New(buffer).With().Timestamp().Logger()
-
-	g, _ := gitea.NewClient(url)
-	return NewGiteaClient(g, logger)
 }

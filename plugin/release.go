@@ -7,7 +7,7 @@ import (
 	"path"
 
 	"code.gitea.io/sdk/gitea"
-	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
 var (
@@ -17,13 +17,11 @@ var (
 
 type GiteaClient struct {
 	client  *gitea.Client
-	log     zerolog.Logger
 	Release *GiteaRelease
 }
 
 type GiteaRelease struct {
 	client *gitea.Client
-	log    zerolog.Logger
 	Opt    GiteaReleaseOpt
 }
 
@@ -39,12 +37,11 @@ type GiteaReleaseOpt struct {
 }
 
 // NewGiteaClient creates a new GiteaClient instance with the provided Gitea client.
-func NewGiteaClient(client *gitea.Client, logger zerolog.Logger) *GiteaClient {
+func NewGiteaClient(client *gitea.Client) *GiteaClient {
 	return &GiteaClient{
 		client: client,
 		Release: &GiteaRelease{
 			client: client,
-			log:    logger,
 			Opt:    GiteaReleaseOpt{},
 		},
 	}
@@ -60,7 +57,7 @@ func (r *GiteaRelease) Find() (*gitea.Release, error) {
 
 	for _, release := range releases {
 		if release.TagName == r.Opt.Tag {
-			r.log.Info().Msgf("successfully retrieved %s release", r.Opt.Tag)
+			log.Info().Msgf("found release: %s", r.Opt.Tag)
 
 			return release, nil
 		}
@@ -85,7 +82,7 @@ func (r *GiteaRelease) Create() (*gitea.Release, error) {
 		return nil, fmt.Errorf("failed to create release: %w", err)
 	}
 
-	r.log.Info().Msgf("successfully created %s release", r.Opt.Tag)
+	log.Info().Msgf("created release: %s", r.Opt.Tag)
 
 	return release, nil
 }
@@ -107,7 +104,7 @@ func (r *GiteaRelease) AddAttachments(releaseID int64, files []string) error {
 		gitea.ListReleaseAttachmentsOptions{},
 	)
 	if err != nil {
-		return fmt.Errorf("failed to fetch existing assets: %w", err)
+		return fmt.Errorf("failed to fetch attachments: %w", err)
 	}
 
 	var uploadFiles []string
@@ -115,8 +112,6 @@ func (r *GiteaRelease) AddAttachments(releaseID int64, files []string) error {
 files:
 	for _, file := range files {
 		for _, attachment := range attachments {
-			r.log.Debug().Msgf("found existing %s artifact", attachment.Name)
-
 			if attachment.Name == path.Base(file) {
 				switch r.Opt.FileExists {
 				case "overwrite":
@@ -124,7 +119,7 @@ files:
 				case "fail":
 					return fmt.Errorf("%w: %s", ErrFileExists, path.Base(file))
 				case "skip":
-					r.log.Warn().Msgf("skipping pre-existing %s artifact", attachment.Name)
+					log.Warn().Msgf("skip existing artifact: %s", path.Base(file))
 
 					continue files
 				}
@@ -137,25 +132,25 @@ files:
 	for _, file := range uploadFiles {
 		handle, err := os.Open(file)
 		if err != nil {
-			return fmt.Errorf("failed to read %s artifact: %w", file, err)
+			return fmt.Errorf("failed to read artifact: %s: %w", file, err)
 		}
 
 		for _, attachment := range attachments {
 			if attachment.Name == path.Base(file) {
 				if _, err := r.client.DeleteReleaseAttachment(r.Opt.Owner, r.Opt.Repo, releaseID, attachment.ID); err != nil {
-					return fmt.Errorf("failed to delete %s artifact: %w", file, err)
+					return fmt.Errorf("failed to delete artifact: %s: %w", file, err)
 				}
 
-				r.log.Info().Msgf("successfully deleted old %s artifact", attachment.Name)
+				log.Info().Msgf("deleted artifact: %s", attachment.Name)
 			}
 		}
 
 		_, _, err = r.client.CreateReleaseAttachment(r.Opt.Owner, r.Opt.Repo, releaseID, handle, path.Base(file))
 		if err != nil {
-			return fmt.Errorf("failed to upload %s artifact: %w", file, err)
+			return fmt.Errorf("failed to upload artifact: %s: %w", file, err)
 		}
 
-		r.log.Info().Msgf("successfully uploaded %s artifact", file)
+		log.Info().Msgf("uploaded artifact: %s", path.Base(file))
 	}
 
 	return nil
