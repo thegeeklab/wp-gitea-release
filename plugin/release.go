@@ -107,51 +107,75 @@ func (r *GiteaRelease) AddAttachments(releaseID int64, files []string) error {
 		return fmt.Errorf("failed to fetch attachments: %w", err)
 	}
 
-	var uploadFiles []string
+	existingAttachments := make(map[string]bool)
+	for _, attachment := range attachments {
+		existingAttachments[attachment.Name] = true
+	}
 
-files:
 	for _, file := range files {
-		for _, attachment := range attachments {
-			if attachment.Name == path.Base(file) {
-				switch r.Opt.FileExists {
-				case "overwrite":
-					// do nothing
-				case "fail":
-					return fmt.Errorf("%w: %s", ErrFileExists, path.Base(file))
-				case "skip":
-					log.Warn().Msgf("skip existing artifact: %s", path.Base(file))
-
-					continue files
+		fileName := path.Base(file)
+		if existingAttachments[fileName] {
+			switch r.Opt.FileExists {
+			case "overwrite":
+				if err := r.deleteAttachment(releaseID, fileName); err != nil {
+					return err
 				}
+			case "fail":
+				return fmt.Errorf("%w: %s", ErrFileExists, fileName)
+			case "skip":
+				log.Warn().Msgf("skip existing artifact: %s", fileName)
+
+				continue
 			}
 		}
 
-		uploadFiles = append(uploadFiles, file)
+		if err := r.uploadFile(releaseID, file); err != nil {
+			return err
+		}
 	}
 
-	for _, file := range uploadFiles {
-		handle, err := os.Open(file)
-		if err != nil {
-			return fmt.Errorf("failed to read artifact: %s: %w", file, err)
-		}
+	return nil
+}
 
-		for _, attachment := range attachments {
-			if attachment.Name == path.Base(file) {
-				if _, err := r.client.DeleteReleaseAttachment(r.Opt.Owner, r.Opt.Repo, releaseID, attachment.ID); err != nil {
-					return fmt.Errorf("failed to delete artifact: %s: %w", file, err)
-				}
+func (r *GiteaRelease) deleteAttachment(releaseID int64, fileName string) error {
+	attachments, _, err := r.client.ListReleaseAttachments(
+		r.Opt.Owner,
+		r.Opt.Repo,
+		releaseID,
+		gitea.ListReleaseAttachmentsOptions{},
+	)
+	if err != nil {
+		return fmt.Errorf("failed to fetch attachments: %w", err)
+	}
 
-				log.Info().Msgf("deleted artifact: %s", attachment.Name)
+	for _, attachment := range attachments {
+		if attachment.Name == fileName {
+			if _, err := r.client.DeleteReleaseAttachment(r.Opt.Owner, r.Opt.Repo, releaseID, attachment.ID); err != nil {
+				return fmt.Errorf("failed to delete artifact: %s: %w", fileName, err)
 			}
-		}
 
-		_, _, err = r.client.CreateReleaseAttachment(r.Opt.Owner, r.Opt.Repo, releaseID, handle, path.Base(file))
-		if err != nil {
-			return fmt.Errorf("failed to upload artifact: %s: %w", file, err)
-		}
+			log.Info().Msgf("deleted artifact: %s", fileName)
 
-		log.Info().Msgf("uploaded artifact: %s", path.Base(file))
+			return nil
+		}
 	}
+
+	return nil
+}
+
+func (r *GiteaRelease) uploadFile(releaseID int64, file string) error {
+	handle, err := os.Open(file)
+	if err != nil {
+		return fmt.Errorf("failed to read artifact: %s: %w", file, err)
+	}
+	defer handle.Close()
+
+	_, _, err = r.client.CreateReleaseAttachment(r.Opt.Owner, r.Opt.Repo, releaseID, handle, path.Base(file))
+	if err != nil {
+		return fmt.Errorf("failed to upload artifact: %s: %w", file, err)
+	}
+
+	log.Info().Msgf("uploaded artifact: %s", path.Base(file))
 
 	return nil
 }

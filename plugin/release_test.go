@@ -319,6 +319,7 @@ func TestGiteaReleaseAddAttachments(t *testing.T) {
 		defer ts.Close()
 
 		logBuffer.Reset()
+
 		g, _ := gitea.NewClient(ts.URL)
 		client := NewGiteaClient(g)
 
