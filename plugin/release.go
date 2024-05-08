@@ -15,9 +15,17 @@ var (
 	ErrFileExists      = errors.New("asset file already exist")
 )
 
-// Release represents a release for a Gitea repository.
-type Release struct {
-	*gitea.Client
+type GiteaClient struct {
+	client  *gitea.Client
+	Release *GiteaRelease
+}
+
+type GiteaRelease struct {
+	client *gitea.Client
+	Opt    GiteaReleaseOpt
+}
+
+type GiteaReleaseOpt struct {
 	Owner      string
 	Repo       string
 	Tag        string
@@ -28,65 +36,66 @@ type Release struct {
 	Note       string
 }
 
-// buildRelease attempts to retrieve an existing release by the specified tag name.
-func (rc *Release) buildRelease() (*gitea.Release, error) {
-	// first attempt to get a release by that tag
-	release, err := rc.getRelease()
+type FileExists string
 
-	if err != nil && release == nil {
-		fmt.Println(err)
-	} else if release != nil {
-		return release, nil
+const (
+	FileExistsOverwrite FileExists = "overwrite"
+	FileExistsFail      FileExists = "fail"
+	FileExistsSkip      FileExists = "skip"
+)
+
+// NewGiteaClient creates a new GiteaClient instance with the provided Gitea client.
+func NewGiteaClient(client *gitea.Client) *GiteaClient {
+	return &GiteaClient{
+		client: client,
+		Release: &GiteaRelease{
+			client: client,
+			Opt:    GiteaReleaseOpt{},
+		},
 	}
-
-	// if no release was found by that tag, create a new one
-	release, err = rc.newRelease()
-	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve or create a release: %w", err)
-	}
-
-	return release, nil
 }
 
-// getRelease retrieves the release with the specified tag name from the repository.
-func (rc *Release) getRelease() (*gitea.Release, error) {
-	releases, _, err := rc.Client.ListReleases(rc.Owner, rc.Repo, gitea.ListReleasesOptions{})
+// Find retrieves the release with the specified tag name from the repository.
+// If the release is not found, it returns an ErrReleaseNotFound error.
+func (r *GiteaRelease) Find() (*gitea.Release, error) {
+	releases, _, err := r.client.ListReleases(r.Opt.Owner, r.Opt.Repo, gitea.ListReleasesOptions{})
 	if err != nil {
 		return nil, err
 	}
 
 	for _, release := range releases {
-		if release.TagName == rc.Tag {
-			log.Info().Msgf("successfully retrieved %s release", rc.Tag)
+		if release.TagName == r.Opt.Tag {
+			log.Info().Msgf("found release: %s", r.Opt.Tag)
 
 			return release, nil
 		}
 	}
 
-	return nil, fmt.Errorf("%w: %s", ErrReleaseNotFound, rc.Tag)
+	return nil, fmt.Errorf("%w: %s", ErrReleaseNotFound, r.Opt.Tag)
 }
 
-// newRelease creates a new release on the repository with the specified options.
-func (rc *Release) newRelease() (*gitea.Release, error) {
-	r := gitea.CreateReleaseOption{
-		TagName:      rc.Tag,
-		IsDraft:      rc.Draft,
-		IsPrerelease: rc.Prerelease,
-		Title:        rc.Title,
-		Note:         rc.Note,
+// Create creates a new release on the Gitea repository with the specified options.
+// It returns the created release or an error if the creation failed.
+func (r *GiteaRelease) Create() (*gitea.Release, error) {
+	opts := gitea.CreateReleaseOption{
+		TagName:      r.Opt.Tag,
+		IsDraft:      r.Opt.Draft,
+		IsPrerelease: r.Opt.Prerelease,
+		Title:        r.Opt.Title,
+		Note:         r.Opt.Note,
 	}
 
-	release, _, err := rc.Client.CreateRelease(rc.Owner, rc.Repo, r)
+	release, _, err := r.client.CreateRelease(r.Opt.Owner, r.Opt.Repo, opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create release: %w", err)
 	}
 
-	log.Info().Msgf("successfully created %s release", rc.Tag)
+	log.Info().Msgf("created release: %s", r.Opt.Tag)
 
 	return release, nil
 }
 
-// uploadFiles uploads the specified files as attachments to the release with the given ID.
+// AddAttachments uploads the specified files as attachments to the release with the given ID.
 // It first checks for any existing attachments with the same names,
 // and handles them according to the FileExists option:
 //
@@ -95,61 +104,66 @@ func (rc *Release) newRelease() (*gitea.Release, error) {
 // - "skip": skips uploading the file and logs a warning
 //
 // If there are no conflicts, it uploads the new files as attachments to the release.
-func (rc *Release) uploadFiles(releaseID int64, files []string) error {
-	attachments, _, err := rc.Client.ListReleaseAttachments(
-		rc.Owner,
-		rc.Repo,
+func (r *GiteaRelease) AddAttachments(releaseID int64, files []string) error {
+	attachments, _, err := r.client.ListReleaseAttachments(
+		r.Opt.Owner,
+		r.Opt.Repo,
 		releaseID,
 		gitea.ListReleaseAttachmentsOptions{},
 	)
 	if err != nil {
-		return fmt.Errorf("failed to fetch existing assets: %w", err)
+		return fmt.Errorf("failed to fetch attachments: %w", err)
 	}
 
-	var uploadFiles []string
+	existingAttachments := make(map[string]bool)
+	attachmentsMap := make(map[string]*gitea.Attachment)
 
-files:
+	for _, attachment := range attachments {
+		attachmentsMap[attachment.Name] = attachment
+		existingAttachments[attachment.Name] = true
+	}
+
 	for _, file := range files {
-		for _, attachment := range attachments {
-			if attachment.Name == path.Base(file) {
-				switch rc.FileExists {
-				case "overwrite":
-					// do nothing
-				case "fail":
-					return fmt.Errorf("%w: %s", ErrFileExists, path.Base(file))
-				case "skip":
-					log.Warn().Msgf("skipping pre-existing %s artifact", attachment.Name)
-
-					continue files
+		fileName := path.Base(file)
+		if existingAttachments[fileName] {
+			switch FileExists(r.Opt.FileExists) {
+			case FileExistsOverwrite:
+				_, err := r.client.DeleteReleaseAttachment(r.Opt.Owner, r.Opt.Repo, releaseID, attachmentsMap[fileName].ID)
+				if err != nil {
+					return fmt.Errorf("failed to delete artifact: %s: %w", fileName, err)
 				}
+
+				log.Info().Msgf("deleted artifact: %s", fileName)
+			case FileExistsFail:
+				return fmt.Errorf("%w: %s", ErrFileExists, fileName)
+			case FileExistsSkip:
+				log.Warn().Msgf("skip existing artifact: %s", fileName)
+
+				continue
 			}
 		}
 
-		uploadFiles = append(uploadFiles, file)
+		if err := r.uploadFile(releaseID, file); err != nil {
+			return err
+		}
 	}
 
-	for _, file := range uploadFiles {
-		handle, err := os.Open(file)
-		if err != nil {
-			return fmt.Errorf("failed to read %s artifact: %w", file, err)
-		}
+	return nil
+}
 
-		for _, attachment := range attachments {
-			if attachment.Name == path.Base(file) {
-				if _, err := rc.Client.DeleteReleaseAttachment(rc.Owner, rc.Repo, releaseID, attachment.ID); err != nil {
-					return fmt.Errorf("failed to delete %s artifact: %w", file, err)
-				}
-
-				log.Info().Msgf("successfully deleted old %s artifact", attachment.Name)
-			}
-		}
-
-		if _, _, err = rc.Client.CreateReleaseAttachment(rc.Owner, rc.Repo, releaseID, handle, path.Base(file)); err != nil {
-			return fmt.Errorf("failed to upload %s artifact: %w", file, err)
-		}
-
-		log.Info().Msgf("successfully uploaded %s artifact", file)
+func (r *GiteaRelease) uploadFile(releaseID int64, file string) error {
+	handle, err := os.Open(file)
+	if err != nil {
+		return fmt.Errorf("failed to read artifact: %s: %w", file, err)
 	}
+	defer handle.Close()
+
+	_, _, err = r.client.CreateReleaseAttachment(r.Opt.Owner, r.Opt.Repo, releaseID, handle, path.Base(file))
+	if err != nil {
+		return fmt.Errorf("failed to upload artifact: %s: %w", file, err)
+	}
+
+	log.Info().Msgf("uploaded artifact: %s", path.Base(file))
 
 	return nil
 }

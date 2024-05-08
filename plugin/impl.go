@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
 	"net/url"
 	"path/filepath"
 	"strings"
@@ -70,19 +69,17 @@ func (p *Plugin) Validate() error {
 
 // Execute provides the implementation of the plugin.
 func (p *Plugin) Execute() error {
-	httpClient := &http.Client{}
-
-	client, err := gitea.NewClient(
+	gitea, err := gitea.NewClient(
 		p.Settings.baseURL.String(),
 		gitea.SetToken(p.Settings.APIKey),
-		gitea.SetHTTPClient(httpClient),
+		gitea.SetHTTPClient(p.Network.Client),
 	)
 	if err != nil {
 		return err
 	}
 
-	r := &Release{
-		Client:     client,
+	client := NewGiteaClient(gitea)
+	client.Release.Opt = GiteaReleaseOpt{
 		Owner:      p.Metadata.Repository.Owner,
 		Repo:       p.Metadata.Repository.Name,
 		Tag:        strings.TrimPrefix(p.Settings.CommitRef, "refs/tags/"),
@@ -93,12 +90,20 @@ func (p *Plugin) Execute() error {
 		Note:       p.Settings.Note,
 	}
 
-	release, err := r.buildRelease()
-	if err != nil {
-		return fmt.Errorf("failed to create the release: %w", err)
+	release, err := client.Release.Find()
+	if err != nil && !errors.Is(err, ErrReleaseNotFound) {
+		return fmt.Errorf("failed to retrieve release: %w", err)
 	}
 
-	if err := r.uploadFiles(release.ID, p.Settings.files); err != nil {
+	// If no release was found by that tag, create a new one.
+	if release == nil {
+		release, err = client.Release.Create()
+		if err != nil {
+			return fmt.Errorf("failed to create release: %w", err)
+		}
+	}
+
+	if err := client.Release.AddAttachments(release.ID, p.Settings.files); err != nil {
 		return fmt.Errorf("failed to upload the files: %w", err)
 	}
 
