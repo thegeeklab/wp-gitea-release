@@ -36,6 +36,14 @@ type GiteaReleaseOpt struct {
 	Note       string
 }
 
+type FileExists string
+
+const (
+	FileExistsOverwrite FileExists = "overwrite"
+	FileExistsFail      FileExists = "fail"
+	FileExistsSkip      FileExists = "skip"
+)
+
 // NewGiteaClient creates a new GiteaClient instance with the provided Gitea client.
 func NewGiteaClient(client *gitea.Client) *GiteaClient {
 	return &GiteaClient{
@@ -108,21 +116,27 @@ func (r *GiteaRelease) AddAttachments(releaseID int64, files []string) error {
 	}
 
 	existingAttachments := make(map[string]bool)
+	attachmentsMap := make(map[string]*gitea.Attachment)
+
 	for _, attachment := range attachments {
+		attachmentsMap[attachment.Name] = attachment
 		existingAttachments[attachment.Name] = true
 	}
 
 	for _, file := range files {
 		fileName := path.Base(file)
 		if existingAttachments[fileName] {
-			switch r.Opt.FileExists {
-			case "overwrite":
-				if err := r.deleteAttachment(releaseID, fileName); err != nil {
-					return err
+			switch FileExists(r.Opt.FileExists) {
+			case FileExistsOverwrite:
+				_, err := r.client.DeleteReleaseAttachment(r.Opt.Owner, r.Opt.Repo, releaseID, attachmentsMap[fileName].ID)
+				if err != nil {
+					return fmt.Errorf("failed to delete artifact: %s: %w", fileName, err)
 				}
-			case "fail":
+
+				log.Info().Msgf("deleted artifact: %s", fileName)
+			case FileExistsFail:
 				return fmt.Errorf("%w: %s", ErrFileExists, fileName)
-			case "skip":
+			case FileExistsSkip:
 				log.Warn().Msgf("skip existing artifact: %s", fileName)
 
 				continue
@@ -131,32 +145,6 @@ func (r *GiteaRelease) AddAttachments(releaseID int64, files []string) error {
 
 		if err := r.uploadFile(releaseID, file); err != nil {
 			return err
-		}
-	}
-
-	return nil
-}
-
-func (r *GiteaRelease) deleteAttachment(releaseID int64, fileName string) error {
-	attachments, _, err := r.client.ListReleaseAttachments(
-		r.Opt.Owner,
-		r.Opt.Repo,
-		releaseID,
-		gitea.ListReleaseAttachmentsOptions{},
-	)
-	if err != nil {
-		return fmt.Errorf("failed to fetch attachments: %w", err)
-	}
-
-	for _, attachment := range attachments {
-		if attachment.Name == fileName {
-			if _, err := r.client.DeleteReleaseAttachment(r.Opt.Owner, r.Opt.Repo, releaseID, attachment.ID); err != nil {
-				return fmt.Errorf("failed to delete artifact: %s: %w", fileName, err)
-			}
-
-			log.Info().Msgf("deleted artifact: %s", fileName)
-
-			return nil
 		}
 	}
 
