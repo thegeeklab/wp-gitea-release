@@ -1,4 +1,4 @@
-package plugin
+package gitea
 
 import (
 	"bytes"
@@ -12,19 +12,19 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/thegeeklab/wp-gitea-release/plugin/mocks"
+	"github.com/thegeeklab/wp-gitea-release/gitea/mocks"
 )
 
-func TestGiteaReleaseFind(t *testing.T) {
+func TestReleaseFind(t *testing.T) {
 	tests := []struct {
 		name    string
-		opt     GiteaReleaseOpt
+		opt     ReleaseOpt
 		want    *gitea.Release
 		wantErr error
 	}{
 		{
 			name: "find release by tag",
-			opt: GiteaReleaseOpt{
+			opt: ReleaseOpt{
 				Owner: "test-owner",
 				Repo:  "test-repo",
 				Tag:   "v1.0.0",
@@ -35,7 +35,7 @@ func TestGiteaReleaseFind(t *testing.T) {
 		},
 		{
 			name: "release not found",
-			opt: GiteaReleaseOpt{
+			opt: ReleaseOpt{
 				Owner: "test-owner",
 				Repo:  "test-repo",
 				Tag:   "v1.1.0",
@@ -46,8 +46,8 @@ func TestGiteaReleaseFind(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		mockClient := mocks.NewMockIGiteaClient(t)
-		r := &GiteaRelease{
+		mockClient := mocks.NewMockAPIClient(t)
+		r := &Release{
 			Opt:    tt.opt,
 			client: mockClient,
 		}
@@ -81,16 +81,16 @@ func TestGiteaReleaseFind(t *testing.T) {
 	}
 }
 
-func TestGiteaReleaseCreate(t *testing.T) {
+func TestReleaseCreate(t *testing.T) {
 	tests := []struct {
 		name    string
-		opt     GiteaReleaseOpt
+		opt     ReleaseOpt
 		want    *gitea.Release
 		wantErr error
 	}{
 		{
 			name: "create release",
-			opt: GiteaReleaseOpt{
+			opt: ReleaseOpt{
 				Owner:      "test-owner",
 				Repo:       "test-repo",
 				Tag:        "v1.1.0",
@@ -109,7 +109,7 @@ func TestGiteaReleaseCreate(t *testing.T) {
 		},
 		{
 			name: "create draft release",
-			opt: GiteaReleaseOpt{
+			opt: ReleaseOpt{
 				Owner:      "test-owner",
 				Repo:       "test-repo",
 				Tag:        "v1.2.0",
@@ -128,7 +128,7 @@ func TestGiteaReleaseCreate(t *testing.T) {
 		},
 		{
 			name: "create prerelease",
-			opt: GiteaReleaseOpt{
+			opt: ReleaseOpt{
 				Owner:      "test-owner",
 				Repo:       "test-repo",
 				Tag:        "v1.3.0-rc1",
@@ -148,8 +148,8 @@ func TestGiteaReleaseCreate(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		mockClient := mocks.NewMockIGiteaClient(t)
-		r := &GiteaRelease{
+		mockClient := mocks.NewMockAPIClient(t)
+		r := &Release{
 			Opt:    tt.opt,
 			client: mockClient,
 		}
@@ -185,14 +185,14 @@ func TestGiteaReleaseCreate(t *testing.T) {
 	}
 }
 
-func TestGiteaReleaseAddAttachments(t *testing.T) {
+func TestReleaseAddAttachments(t *testing.T) {
 	logBuffer := &bytes.Buffer{}
 	logger := zerolog.New(logBuffer)
 	log.Logger = logger
 
 	tests := []struct {
 		name       string
-		opt        GiteaReleaseOpt
+		opt        ReleaseOpt
 		files      []string
 		fileExists string
 		wantErr    error
@@ -200,7 +200,7 @@ func TestGiteaReleaseAddAttachments(t *testing.T) {
 	}{
 		{
 			name: "add new attachments",
-			opt: GiteaReleaseOpt{
+			opt: ReleaseOpt{
 				Owner:      "test-owner",
 				Repo:       "test-repo",
 				Tag:        "v2.0.0",
@@ -212,7 +212,7 @@ func TestGiteaReleaseAddAttachments(t *testing.T) {
 		},
 		{
 			name: "fail on existing attachments",
-			opt: GiteaReleaseOpt{
+			opt: ReleaseOpt{
 				Owner:      "test-owner",
 				Repo:       "test-repo",
 				Tag:        "v2.0.0",
@@ -224,7 +224,7 @@ func TestGiteaReleaseAddAttachments(t *testing.T) {
 		},
 		{
 			name: "overwrite on existing attachments",
-			opt: GiteaReleaseOpt{
+			opt: ReleaseOpt{
 				Owner:      "test-owner",
 				Repo:       "test-repo",
 				Tag:        "v2.0.0",
@@ -236,7 +236,7 @@ func TestGiteaReleaseAddAttachments(t *testing.T) {
 		},
 		{
 			name: "skip on existing attachments",
-			opt: GiteaReleaseOpt{
+			opt: ReleaseOpt{
 				Owner:      "test-owner",
 				Repo:       "test-repo",
 				Tag:        "v2.0.0",
@@ -248,7 +248,7 @@ func TestGiteaReleaseAddAttachments(t *testing.T) {
 		},
 		{
 			name: "fail on invalid file",
-			opt: GiteaReleaseOpt{
+			opt: ReleaseOpt{
 				Owner:      "test-owner",
 				Repo:       "test-repo",
 				Tag:        "v2.0.0",
@@ -263,8 +263,8 @@ func TestGiteaReleaseAddAttachments(t *testing.T) {
 	for _, tt := range tests {
 		logBuffer.Reset()
 
-		mockClient := mocks.NewMockIGiteaClient(t)
-		r := &GiteaRelease{
+		mockClient := mocks.NewMockAPIClient(t)
+		r := &Release{
 			Opt:    tt.opt,
 			client: mockClient,
 		}

@@ -8,7 +8,6 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-//go:generate mockery
 //go:generate go run ../internal/doc/main.go -output=../docs/data/data-raw.yaml
 
 // Plugin implements provide the plugin.
