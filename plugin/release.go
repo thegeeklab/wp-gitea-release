@@ -16,6 +16,7 @@ var (
 	ErrFileExists      = errors.New("asset file already exist")
 )
 
+//nolint:lll
 type IGiteaClient interface {
 	ListReleases(owner, repo string, opt gitea.ListReleasesOptions) ([]*gitea.Release, *gitea.Response, error)
 	CreateRelease(owner, repo string, opt gitea.CreateReleaseOption) (*gitea.Release, *gitea.Response, error)
