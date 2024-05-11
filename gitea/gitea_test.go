@@ -1,98 +1,30 @@
-package plugin
+package gitea
 
 import (
 	"bytes"
 	"errors"
-	"fmt"
-	"io"
-	"net/http"
-	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
 
-	"github.com/rs/zerolog/log"
-
 	"code.gitea.io/sdk/gitea"
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"github.com/thegeeklab/wp-gitea-release/gitea/mocks"
 )
 
-func giteaMockHandler(t *testing.T, opt GiteaReleaseOpt) func(http.ResponseWriter, *http.Request) {
-	t.Helper()
-
-	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		fmt.Println(r.RequestURI)
-
-		switch r.RequestURI {
-		case "/api/v1/version":
-			_, err := io.WriteString(w, `{"version":"1.21.0"}`)
-			if err != nil {
-				t.Fail()
-			}
-		case "/api/v1/repos/test-owner/test-repo/releases?limit=0&page=1":
-			_, err := io.WriteString(w, `[{
-				"id": 1,
-				"tag_name": "v1.0.0",
-				"name": "Release v1.0.0",
-				"body": "This is the release notes for v1.0.0",
-				"draft": false,
-				"prerelease": false,
-				"created_at": "2023-05-01T12:00:00Z",
-				"published_at": "2023-05-01T12:30:00Z"
-			}]`)
-			if err != nil {
-				t.Fail()
-			}
-		case "/api/v1/repos/test-owner/test-repo/releases":
-			_, err := io.WriteString(w, fmt.Sprintf(`{
-				"id": 1,
-				"tag_name": "%s",
-				"name": "Release %s",
-				"body": "This is the release notes for %s",
-				"draft": %t,
-				"prerelease": %t,
-				"created_at": "2023-05-01T12:00:00Z",
-				"published_at": "2023-05-01T12:30:00Z"
-			}`, opt.Tag, opt.Tag, opt.Tag, opt.Draft, opt.Prerelease))
-			if err != nil {
-				t.Fail()
-			}
-		case "/api/v1/repos/test-owner/test-repo/releases/1/assets?limit=0&page=1":
-			_, err := io.WriteString(w, `[{
-				"id": 1,
-				"name": "file1.txt",
-				"size": 1024,
-				"created_at": "2023-05-01T12:30:00Z"
-			}]`)
-			if err != nil {
-				t.Fail()
-			}
-		case "/api/v1/repos/test-owner/test-repo/releases/1/assets":
-			_, err := io.WriteString(w, `{
-				"id": 1,
-				"name": "file1.txt",
-				"size": 1024,
-				"created_at": "2023-05-01T12:30:00Z"
-			}`)
-			if err != nil {
-				t.Fail()
-			}
-		}
-	}
-}
-
-func TestGiteaReleaseFind(t *testing.T) {
+func TestReleaseFind(t *testing.T) {
 	tests := []struct {
 		name    string
-		opt     GiteaReleaseOpt
+		opt     ReleaseOpt
 		want    *gitea.Release
 		wantErr error
 	}{
 		{
 			name: "find release by tag",
-			opt: GiteaReleaseOpt{
+			opt: ReleaseOpt{
 				Owner: "test-owner",
 				Repo:  "test-repo",
 				Tag:   "v1.0.0",
@@ -103,7 +35,7 @@ func TestGiteaReleaseFind(t *testing.T) {
 		},
 		{
 			name: "release not found",
-			opt: GiteaReleaseOpt{
+			opt: ReleaseOpt{
 				Owner: "test-owner",
 				Repo:  "test-repo",
 				Tag:   "v1.1.0",
@@ -114,19 +46,29 @@ func TestGiteaReleaseFind(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			giteaMockHandler(t, tt.opt)(w, r)
-		}))
-		defer ts.Close()
+		mockClient := mocks.NewMockAPIClient(t)
+		r := &Release{
+			Opt:    tt.opt,
+			client: mockClient,
+		}
 
-		g, _ := gitea.NewClient(ts.URL)
-		client := NewGiteaClient(g)
+		mockClient.
+			On("ListReleases", mock.Anything, mock.Anything, mock.Anything).
+			Return([]*gitea.Release{
+				{
+					ID:           1,
+					TagName:      "v1.0.0",
+					Title:        "Release v1.0.0",
+					Note:         "This is the release notes for v1.0.0",
+					IsDraft:      false,
+					IsPrerelease: false,
+				},
+			}, nil, nil)
 
 		t.Run(tt.name, func(t *testing.T) {
-			client.Release.Opt = tt.opt
-			release, err := client.Release.Find()
+			release, err := r.Find()
 
-			if tt.want == nil {
+			if tt.wantErr != nil {
 				assert.Error(t, err)
 				assert.Nil(t, release)
 
@@ -139,16 +81,16 @@ func TestGiteaReleaseFind(t *testing.T) {
 	}
 }
 
-func TestGiteaReleaseCreate(t *testing.T) {
+func TestReleaseCreate(t *testing.T) {
 	tests := []struct {
 		name    string
-		opt     GiteaReleaseOpt
+		opt     ReleaseOpt
 		want    *gitea.Release
 		wantErr error
 	}{
 		{
 			name: "create release",
-			opt: GiteaReleaseOpt{
+			opt: ReleaseOpt{
 				Owner:      "test-owner",
 				Repo:       "test-repo",
 				Tag:        "v1.1.0",
@@ -167,7 +109,7 @@ func TestGiteaReleaseCreate(t *testing.T) {
 		},
 		{
 			name: "create draft release",
-			opt: GiteaReleaseOpt{
+			opt: ReleaseOpt{
 				Owner:      "test-owner",
 				Repo:       "test-repo",
 				Tag:        "v1.2.0",
@@ -186,7 +128,7 @@ func TestGiteaReleaseCreate(t *testing.T) {
 		},
 		{
 			name: "create prerelease",
-			opt: GiteaReleaseOpt{
+			opt: ReleaseOpt{
 				Owner:      "test-owner",
 				Repo:       "test-repo",
 				Tag:        "v1.3.0-rc1",
@@ -206,17 +148,25 @@ func TestGiteaReleaseCreate(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			giteaMockHandler(t, tt.opt)(w, r)
-		}))
-		defer ts.Close()
+		mockClient := mocks.NewMockAPIClient(t)
+		r := &Release{
+			Opt:    tt.opt,
+			client: mockClient,
+		}
 
-		g, _ := gitea.NewClient(ts.URL)
-		client := NewGiteaClient(g)
+		mockClient.
+			On("CreateRelease", mock.Anything, mock.Anything, mock.Anything).
+			Return(&gitea.Release{
+				ID:           1,
+				TagName:      tt.opt.Tag,
+				Title:        tt.opt.Title,
+				Note:         tt.opt.Note,
+				IsDraft:      tt.opt.Draft,
+				IsPrerelease: tt.opt.Prerelease,
+			}, nil, nil)
 
 		t.Run(tt.name, func(t *testing.T) {
-			client.Release.Opt = tt.opt
-			release, err := client.Release.Create()
+			release, err := r.Create()
 
 			if tt.wantErr != nil {
 				assert.Error(t, err)
@@ -235,14 +185,14 @@ func TestGiteaReleaseCreate(t *testing.T) {
 	}
 }
 
-func TestGiteaReleaseAddAttachments(t *testing.T) {
+func TestReleaseAddAttachments(t *testing.T) {
 	logBuffer := &bytes.Buffer{}
 	logger := zerolog.New(logBuffer)
 	log.Logger = logger
 
 	tests := []struct {
 		name       string
-		opt        GiteaReleaseOpt
+		opt        ReleaseOpt
 		files      []string
 		fileExists string
 		wantErr    error
@@ -250,7 +200,7 @@ func TestGiteaReleaseAddAttachments(t *testing.T) {
 	}{
 		{
 			name: "add new attachments",
-			opt: GiteaReleaseOpt{
+			opt: ReleaseOpt{
 				Owner:      "test-owner",
 				Repo:       "test-repo",
 				Tag:        "v2.0.0",
@@ -262,7 +212,7 @@ func TestGiteaReleaseAddAttachments(t *testing.T) {
 		},
 		{
 			name: "fail on existing attachments",
-			opt: GiteaReleaseOpt{
+			opt: ReleaseOpt{
 				Owner:      "test-owner",
 				Repo:       "test-repo",
 				Tag:        "v2.0.0",
@@ -274,7 +224,7 @@ func TestGiteaReleaseAddAttachments(t *testing.T) {
 		},
 		{
 			name: "overwrite on existing attachments",
-			opt: GiteaReleaseOpt{
+			opt: ReleaseOpt{
 				Owner:      "test-owner",
 				Repo:       "test-repo",
 				Tag:        "v2.0.0",
@@ -282,12 +232,11 @@ func TestGiteaReleaseAddAttachments(t *testing.T) {
 				FileExists: "overwrite",
 			},
 			files:    []string{createTempFile(t, "file1.txt"), createTempFile(t, "file2.txt")},
-			wantErr:  nil,
 			wantLogs: []string{"deleted artifact: file1.txt", "uploaded artifact: file1.txt"},
 		},
 		{
 			name: "skip on existing attachments",
-			opt: GiteaReleaseOpt{
+			opt: ReleaseOpt{
 				Owner:      "test-owner",
 				Repo:       "test-repo",
 				Tag:        "v2.0.0",
@@ -295,12 +244,11 @@ func TestGiteaReleaseAddAttachments(t *testing.T) {
 				FileExists: "skip",
 			},
 			files:    []string{createTempFile(t, "file1.txt"), createTempFile(t, "file2.txt")},
-			wantErr:  nil,
 			wantLogs: []string{"skip existing artifact: file1"},
 		},
 		{
 			name: "fail on invalid file",
-			opt: GiteaReleaseOpt{
+			opt: ReleaseOpt{
 				Owner:      "test-owner",
 				Repo:       "test-repo",
 				Tag:        "v2.0.0",
@@ -313,21 +261,36 @@ func TestGiteaReleaseAddAttachments(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			giteaMockHandler(t, tt.opt)(w, r)
-		}))
-		defer ts.Close()
-
 		logBuffer.Reset()
 
-		g, _ := gitea.NewClient(ts.URL)
-		client := NewGiteaClient(g)
+		mockClient := mocks.NewMockAPIClient(t)
+		r := &Release{
+			Opt:    tt.opt,
+			client: mockClient,
+		}
+
+		mockClient.
+			On("ListReleaseAttachments", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+			Return([]*gitea.Attachment{
+				{
+					Name: "file1.txt",
+				},
+			}, nil, nil)
+
+		if FileExists(tt.opt.FileExists) == FileExistsOverwrite {
+			mockClient.
+				On("DeleteReleaseAttachment", mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+				Return(nil, nil)
+		}
+
+		if tt.wantErr == nil {
+			mockClient.
+				On("CreateReleaseAttachment", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+				Return(nil, nil, nil)
+		}
 
 		t.Run(tt.name, func(t *testing.T) {
-			client.Release.Opt = tt.opt
-			release, _ := client.Release.Create()
-
-			err := client.Release.AddAttachments(release.ID, tt.files)
+			err := r.AddAttachments(1, tt.files)
 
 			// Assert log output.
 			for _, l := range tt.wantLogs {

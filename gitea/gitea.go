@@ -1,8 +1,9 @@
-package plugin
+package gitea
 
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"path"
 
@@ -15,17 +16,23 @@ var (
 	ErrFileExists      = errors.New("asset file already exist")
 )
 
-type GiteaClient struct {
-	client  *gitea.Client
-	Release *GiteaRelease
+const (
+	FileExistsOverwrite FileExists = "overwrite"
+	FileExistsFail      FileExists = "fail"
+	FileExistsSkip      FileExists = "skip"
+)
+
+type Client struct {
+	client  APIClient
+	Release *Release
 }
 
-type GiteaRelease struct {
-	client *gitea.Client
-	Opt    GiteaReleaseOpt
+type Release struct {
+	client APIClient
+	Opt    ReleaseOpt
 }
 
-type GiteaReleaseOpt struct {
+type ReleaseOpt struct {
 	Owner      string
 	Repo       string
 	Tag        string
@@ -38,26 +45,25 @@ type GiteaReleaseOpt struct {
 
 type FileExists string
 
-const (
-	FileExistsOverwrite FileExists = "overwrite"
-	FileExistsFail      FileExists = "fail"
-	FileExistsSkip      FileExists = "skip"
-)
-
-// NewGiteaClient creates a new GiteaClient instance with the provided Gitea client.
-func NewGiteaClient(client *gitea.Client) *GiteaClient {
-	return &GiteaClient{
-		client: client,
-		Release: &GiteaRelease{
-			client: client,
-			Opt:    GiteaReleaseOpt{},
-		},
+// NewClient creates a new Client instance with the provided Gitea client.
+func NewClient(url, key string, client *http.Client) (*Client, error) {
+	c, err := gitea.NewClient(url, gitea.SetToken(key), gitea.SetHTTPClient(client))
+	if err != nil {
+		return nil, err
 	}
+
+	return &Client{
+		client: c,
+		Release: &Release{
+			client: c,
+			Opt:    ReleaseOpt{},
+		},
+	}, nil
 }
 
 // Find retrieves the release with the specified tag name from the repository.
 // If the release is not found, it returns an ErrReleaseNotFound error.
-func (r *GiteaRelease) Find() (*gitea.Release, error) {
+func (r *Release) Find() (*gitea.Release, error) {
 	releases, _, err := r.client.ListReleases(r.Opt.Owner, r.Opt.Repo, gitea.ListReleasesOptions{})
 	if err != nil {
 		return nil, err
@@ -76,7 +82,7 @@ func (r *GiteaRelease) Find() (*gitea.Release, error) {
 
 // Create creates a new release on the Gitea repository with the specified options.
 // It returns the created release or an error if the creation failed.
-func (r *GiteaRelease) Create() (*gitea.Release, error) {
+func (r *Release) Create() (*gitea.Release, error) {
 	opts := gitea.CreateReleaseOption{
 		TagName:      r.Opt.Tag,
 		IsDraft:      r.Opt.Draft,
@@ -104,7 +110,7 @@ func (r *GiteaRelease) Create() (*gitea.Release, error) {
 // - "skip": skips uploading the file and logs a warning
 //
 // If there are no conflicts, it uploads the new files as attachments to the release.
-func (r *GiteaRelease) AddAttachments(releaseID int64, files []string) error {
+func (r *Release) AddAttachments(releaseID int64, files []string) error {
 	attachments, _, err := r.client.ListReleaseAttachments(
 		r.Opt.Owner,
 		r.Opt.Repo,
@@ -151,7 +157,7 @@ func (r *GiteaRelease) AddAttachments(releaseID int64, files []string) error {
 	return nil
 }
 
-func (r *GiteaRelease) uploadFile(releaseID int64, file string) error {
+func (r *Release) uploadFile(releaseID int64, file string) error {
 	handle, err := os.Open(file)
 	if err != nil {
 		return fmt.Errorf("failed to read artifact: %s: %w", file, err)

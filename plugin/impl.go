@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"code.gitea.io/sdk/gitea"
+	"github.com/thegeeklab/wp-gitea-release/gitea"
 	"github.com/thegeeklab/wp-plugin-go/v2/file"
 )
 
@@ -69,17 +69,12 @@ func (p *Plugin) Validate() error {
 
 // Execute provides the implementation of the plugin.
 func (p *Plugin) Execute() error {
-	gitea, err := gitea.NewClient(
-		p.Settings.baseURL.String(),
-		gitea.SetToken(p.Settings.APIKey),
-		gitea.SetHTTPClient(p.Network.Client),
-	)
+	client, err := gitea.NewClient(p.Settings.baseURL.String(), p.Settings.APIKey, p.Network.Client)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create Gitea client: %w", err)
 	}
 
-	client := NewGiteaClient(gitea)
-	client.Release.Opt = GiteaReleaseOpt{
+	client.Release.Opt = gitea.ReleaseOpt{
 		Owner:      p.Metadata.Repository.Owner,
 		Repo:       p.Metadata.Repository.Name,
 		Tag:        strings.TrimPrefix(p.Settings.CommitRef, "refs/tags/"),
@@ -91,7 +86,7 @@ func (p *Plugin) Execute() error {
 	}
 
 	release, err := client.Release.Find()
-	if err != nil && !errors.Is(err, ErrReleaseNotFound) {
+	if err != nil && !errors.Is(err, gitea.ErrReleaseNotFound) {
 		return fmt.Errorf("failed to retrieve release: %w", err)
 	}
 
