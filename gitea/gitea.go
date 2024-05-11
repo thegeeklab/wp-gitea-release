@@ -29,10 +29,10 @@ type Client struct {
 
 type Release struct {
 	client APIClient
-	Opt    ReleaseOpt
+	Opt    ReleaseOptions
 }
 
-type ReleaseOpt struct {
+type ReleaseOptions struct {
 	Owner      string
 	Repo       string
 	Tag        string
@@ -56,7 +56,7 @@ func NewClient(url, key string, client *http.Client) (*Client, error) {
 		client: c,
 		Release: &Release{
 			client: c,
-			Opt:    ReleaseOpt{},
+			Opt:    ReleaseOptions{},
 		},
 	}, nil
 }

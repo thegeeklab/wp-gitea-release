@@ -74,7 +74,7 @@ func (p *Plugin) Execute() error {
 		return fmt.Errorf("failed to create Gitea client: %w", err)
 	}
 
-	client.Release.Opt = gitea.ReleaseOpt{
+	client.Release.Opt = gitea.ReleaseOptions{
 		Owner:      p.Metadata.Repository.Owner,
 		Repo:       p.Metadata.Repository.Name,
 		Tag:        strings.TrimPrefix(p.Settings.CommitRef, "refs/tags/"),

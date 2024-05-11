@@ -18,13 +18,13 @@ import (
 func TestReleaseFind(t *testing.T) {
 	tests := []struct {
 		name    string
-		opt     ReleaseOpt
+		opt     ReleaseOptions
 		want    *gitea.Release
 		wantErr error
 	}{
 		{
 			name: "find release by tag",
-			opt: ReleaseOpt{
+			opt: ReleaseOptions{
 				Owner: "test-owner",
 				Repo:  "test-repo",
 				Tag:   "v1.0.0",
@@ -35,7 +35,7 @@ func TestReleaseFind(t *testing.T) {
 		},
 		{
 			name: "release not found",
-			opt: ReleaseOpt{
+			opt: ReleaseOptions{
 				Owner: "test-owner",
 				Repo:  "test-repo",
 				Tag:   "v1.1.0",
@@ -84,13 +84,13 @@ func TestReleaseFind(t *testing.T) {
 func TestReleaseCreate(t *testing.T) {
 	tests := []struct {
 		name    string
-		opt     ReleaseOpt
+		opt     ReleaseOptions
 		want    *gitea.Release
 		wantErr error
 	}{
 		{
 			name: "create release",
-			opt: ReleaseOpt{
+			opt: ReleaseOptions{
 				Owner:      "test-owner",
 				Repo:       "test-repo",
 				Tag:        "v1.1.0",
@@ -109,7 +109,7 @@ func TestReleaseCreate(t *testing.T) {
 		},
 		{
 			name: "create draft release",
-			opt: ReleaseOpt{
+			opt: ReleaseOptions{
 				Owner:      "test-owner",
 				Repo:       "test-repo",
 				Tag:        "v1.2.0",
@@ -128,7 +128,7 @@ func TestReleaseCreate(t *testing.T) {
 		},
 		{
 			name: "create prerelease",
-			opt: ReleaseOpt{
+			opt: ReleaseOptions{
 				Owner:      "test-owner",
 				Repo:       "test-repo",
 				Tag:        "v1.3.0-rc1",
@@ -192,7 +192,7 @@ func TestReleaseAddAttachments(t *testing.T) {
 
 	tests := []struct {
 		name       string
-		opt        ReleaseOpt
+		opt        ReleaseOptions
 		files      []string
 		fileExists string
 		wantErr    error
@@ -200,7 +200,7 @@ func TestReleaseAddAttachments(t *testing.T) {
 	}{
 		{
 			name: "add new attachments",
-			opt: ReleaseOpt{
+			opt: ReleaseOptions{
 				Owner:      "test-owner",
 				Repo:       "test-repo",
 				Tag:        "v2.0.0",
@@ -212,7 +212,7 @@ func TestReleaseAddAttachments(t *testing.T) {
 		},
 		{
 			name: "fail on existing attachments",
-			opt: ReleaseOpt{
+			opt: ReleaseOptions{
 				Owner:      "test-owner",
 				Repo:       "test-repo",
 				Tag:        "v2.0.0",
@@ -224,7 +224,7 @@ func TestReleaseAddAttachments(t *testing.T) {
 		},
 		{
 			name: "overwrite on existing attachments",
-			opt: ReleaseOpt{
+			opt: ReleaseOptions{
 				Owner:      "test-owner",
 				Repo:       "test-repo",
 				Tag:        "v2.0.0",
@@ -236,7 +236,7 @@ func TestReleaseAddAttachments(t *testing.T) {
 		},
 		{
 			name: "skip on existing attachments",
-			opt: ReleaseOpt{
+			opt: ReleaseOptions{
 				Owner:      "test-owner",
 				Repo:       "test-repo",
 				Tag:        "v2.0.0",
@@ -248,7 +248,7 @@ func TestReleaseAddAttachments(t *testing.T) {
 		},
 		{
 			name: "fail on invalid file",
-			opt: ReleaseOpt{
+			opt: ReleaseOptions{
 				Owner:      "test-owner",
 				Repo:       "test-repo",
 				Tag:        "v2.0.0",
