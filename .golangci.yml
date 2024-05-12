@@ -94,9 +94,3 @@ run:
 linters-settings:
   gofumpt:
     extra-rules: true
-
-issues:
-  exclude-rules:
-    - path: "_test.go"
-      linters:
-        - err113

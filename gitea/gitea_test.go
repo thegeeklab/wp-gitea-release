@@ -15,6 +15,8 @@ import (
 	"github.com/thegeeklab/wp-gitea-release/gitea/mocks"
 )
 
+var ErrNoSuchFileOrDirectory = errors.New("no such file or directory")
+
 func TestReleaseFind(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -256,7 +258,7 @@ func TestReleaseAddAttachments(t *testing.T) {
 				FileExists: "overwrite",
 			},
 			files:   []string{"testdata/file1.txt", "testdata/invalid.txt"},
-			wantErr: errors.New("no such file or directory"),
+			wantErr: ErrNoSuchFileOrDirectory,
 		},
 	}
 
