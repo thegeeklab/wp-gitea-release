@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/thegeeklab/wp-gitea-release/gitea"
-	"github.com/thegeeklab/wp-plugin-go/v2/file"
+	"github.com/thegeeklab/wp-plugin-go/v3/file"
 )
 
 var (

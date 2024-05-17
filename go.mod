@@ -6,10 +6,12 @@ require (
 	code.gitea.io/sdk/gitea v0.18.0
 	github.com/rs/zerolog v1.32.0
 	github.com/stretchr/testify v1.9.0
-	github.com/thegeeklab/wp-plugin-go/v2 v2.3.1
+	github.com/thegeeklab/wp-plugin-go/v3 v3.0.2
 	github.com/urfave/cli/v2 v2.27.2
 	golang.org/x/crypto v0.23.0
 )
+
+require github.com/thegeeklab/wp-plugin-go/v2 v2.3.1
 
 require (
 	github.com/Masterminds/goutils v1.1.1 // indirect
