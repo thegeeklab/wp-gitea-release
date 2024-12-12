@@ -11,8 +11,6 @@ require (
 	golang.org/x/crypto v0.31.0
 )
 
-require github.com/thegeeklab/wp-plugin-go/v3 v3.0.9
-
 require (
 	dario.cat/mergo v1.0.1 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
