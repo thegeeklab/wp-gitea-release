@@ -81,7 +81,7 @@ func WriteChecksums(files, methods []string, outDir string) ([]string, error) {
 				return nil, fmt.Errorf("could not checksum %q file: %w", file, err)
 			}
 
-			_, err = f.WriteString(fmt.Sprintf("%s  %s\n", hash, file))
+			_, err = fmt.Fprintf(f, "%s  %s\n", hash, file)
 			if err != nil {
 				return nil, err
 			}
