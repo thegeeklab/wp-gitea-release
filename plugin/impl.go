@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/thegeeklab/wp-gitea-release/gitea"
-	plugin_file "github.com/thegeeklab/wp-plugin-go/v4/file"
+	plugin_file "github.com/thegeeklab/wp-plugin-go/v6/file"
 )
 
 var (
@@ -108,7 +108,7 @@ func (p *Plugin) Execute() error {
 func (p *Plugin) FlagsFromContext() error {
 	var err error
 
-	baseURL := p.Context.String("base-url")
+	baseURL := p.App.String("base-url")
 
 	if !strings.HasSuffix(baseURL, "/") {
 		baseURL += "/"
@@ -121,7 +121,7 @@ func (p *Plugin) FlagsFromContext() error {
 
 	var files []string
 
-	rawFiles := p.Context.StringSlice("files")
+	rawFiles := p.App.StringSlice("files")
 	for _, glob := range rawFiles {
 		globed, err := filepath.Glob(glob)
 		if err != nil {
@@ -133,10 +133,10 @@ func (p *Plugin) FlagsFromContext() error {
 		}
 	}
 
-	if len(p.Settings.Checksum.Value()) > 0 {
+	if len(p.Settings.Checksum) > 0 {
 		var err error
 
-		files, err = WriteChecksums(files, p.Settings.Checksum.Value(), "")
+		files, err = WriteChecksums(files, p.Settings.Checksum, "")
 		if err != nil {
 			return fmt.Errorf("failed to write checksums: %w", err)
 		}
