@@ -6,7 +6,7 @@ require (
 	code.gitea.io/sdk/gitea v0.21.0
 	github.com/rs/zerolog v1.34.0
 	github.com/stretchr/testify v1.10.0
-	github.com/thegeeklab/wp-plugin-go/v6 v6.0.0
+	github.com/thegeeklab/wp-plugin-go/v6 v6.0.1
 	github.com/urfave/cli/v3 v3.2.0
 	golang.org/x/crypto v0.37.0
 )
