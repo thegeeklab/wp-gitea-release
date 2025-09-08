@@ -1,6 +1,6 @@
 module github.com/thegeeklab/wp-gitea-release
 
-go 1.25.0
+go 1.25.1
 
 require (
 	code.gitea.io/sdk/gitea v0.22.0
