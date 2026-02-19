@@ -17,7 +17,6 @@ var (
 	ErrFileExistInvalid        = errors.New("invalid file_exist value")
 )
 
-//nolint:revive
 func (p *Plugin) run(ctx context.Context) error {
 	if err := p.FlagsFromContext(); err != nil {
 		return fmt.Errorf("validation failed: %w", err)
