@@ -6,7 +6,7 @@ require (
 	code.gitea.io/sdk/gitea v0.25.0
 	github.com/rs/zerolog v1.35.1
 	github.com/stretchr/testify v1.11.1
-	github.com/thegeeklab/wp-plugin-go/v6 v6.0.15
+	github.com/thegeeklab/wp-plugin-go/v6 v6.0.16
 	github.com/urfave/cli/v3 v3.8.0
 	golang.org/x/crypto v0.50.0
 )
@@ -15,7 +15,7 @@ require (
 	dario.cat/mergo v1.0.1 // indirect
 	github.com/42wim/httpsig v1.2.4 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
-	github.com/Masterminds/semver/v3 v3.4.0 // indirect
+	github.com/Masterminds/semver/v3 v3.5.0 // indirect
 	github.com/Masterminds/sprig/v3 v3.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/davidmz/go-pageant v1.0.2 // indirect
