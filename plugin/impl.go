@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/thegeeklab/wp-gitea-release/gitea"
-	plugin_file "github.com/thegeeklab/wp-plugin-go/v6/file"
+	plugin_file "github.com/thegeeklab/wp-plugin-go/v7/file"
 )
 
 var (
@@ -35,7 +35,10 @@ func (p *Plugin) run(ctx context.Context) error {
 
 // Validate handles the settings validation of the plugin.
 func (p *Plugin) Validate() error {
-	var err error
+	metadata, err := p.GetMetadata()
+	if err != nil {
+		return fmt.Errorf("error while getting metadata: %w", err)
+	}
 
 	fileExistsValues := map[string]bool{
 		"overwrite": true,
@@ -44,7 +47,7 @@ func (p *Plugin) Validate() error {
 	}
 
 	if p.Settings.Event != "tag" {
-		return fmt.Errorf("%w: %s", ErrPluginEventNotSupported, p.Metadata.Pipeline.Event)
+		return fmt.Errorf("%w: %s", ErrPluginEventNotSupported, metadata.Pipeline.Event)
 	}
 
 	if !fileExistsValues[p.Settings.FileExists] {
@@ -68,14 +71,24 @@ func (p *Plugin) Validate() error {
 
 // Execute provides the implementation of the plugin.
 func (p *Plugin) Execute() error {
-	client, err := gitea.NewClient(p.Settings.baseURL.String(), p.Settings.APIKey, p.Network.Client)
+	metadata, err := p.GetMetadata()
+	if err != nil {
+		return fmt.Errorf("error while getting metadata: %w", err)
+	}
+
+	network, err := p.GetNetwork()
+	if err != nil {
+		return fmt.Errorf("error while getting network configuration: %w", err)
+	}
+
+	client, err := gitea.NewClient(p.Settings.baseURL.String(), p.Settings.APIKey, network.Client)
 	if err != nil {
 		return fmt.Errorf("failed to create Gitea client: %w", err)
 	}
 
 	client.Release.Opt = gitea.ReleaseOptions{
-		Owner:      p.Metadata.Repository.Owner,
-		Repo:       p.Metadata.Repository.Name,
+		Owner:      metadata.Repository.Owner,
+		Repo:       metadata.Repository.Name,
 		Tag:        strings.TrimPrefix(p.Settings.CommitRef, "refs/tags/"),
 		Draft:      p.Settings.Draft,
 		Prerelease: p.Settings.PreRelease,
