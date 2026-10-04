@@ -13,8 +13,10 @@ import (
 )
 
 var (
+	// ErrPluginEventNotSupported is returned when the pipeline event is not a tag.
 	ErrPluginEventNotSupported = errors.New("event not supported")
-	ErrFileExistInvalid        = errors.New("invalid file_exist value")
+	// ErrFileExistInvalid is returned when an unsupported file-exists value is configured.
+	ErrFileExistInvalid = errors.New("invalid file_exist value")
 )
 
 func (p *Plugin) run(ctx context.Context) error {

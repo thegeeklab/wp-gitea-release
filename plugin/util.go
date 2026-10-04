@@ -17,6 +17,7 @@ import (
 	"golang.org/x/crypto/blake2s"
 )
 
+// ErrHashMethodNotSupported is returned when a checksum method outside the supported set is requested.
 var ErrHashMethodNotSupported = errors.New("hash method not supported")
 
 // Checksum calculates the checksum of the given io.Reader using the specified hash method.

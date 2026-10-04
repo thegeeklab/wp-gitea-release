@@ -12,8 +12,10 @@ import (
 )
 
 var (
+	// ErrReleaseNotFound is returned when listing releases by tag returns no matching release.
 	ErrReleaseNotFound = errors.New("release not found")
-	ErrFileExists      = errors.New("asset file already exist")
+	// ErrFileExists is returned when an asset with the same name already exists and the file-exists mode is set to fail.
+	ErrFileExists = errors.New("asset file already exist")
 )
 
 const (
